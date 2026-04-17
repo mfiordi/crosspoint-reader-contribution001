@@ -18,6 +18,7 @@
 #include "CrossPointSettings.h"
 #include "CrossPointState.h"
 #include "KOReaderCredentialStore.h"
+#include "InputAction.h"
 #include "MappedInputManager.h"
 #include "RecentBooksStore.h"
 #include "activities/Activity.h"
@@ -316,6 +317,7 @@ void loop() {
   static unsigned long lastMemPrint = 0;
 
   gpio.update();
+  mappedInputManager.afterGpioUpdate();
 
   renderer.setFadingFix(SETTINGS.fadingFix);
 
@@ -381,9 +383,15 @@ void loop() {
     return;
   }
 
-  // Refresh screen when power button is short-pressed with FORCE_REFRESH setting.
-  if (SETTINGS.shortPwrBtn == CrossPointSettings::SHORT_PWRBTN::FORCE_REFRESH &&
-      mappedInputManager.wasReleased(MappedInputManager::Button::Power)) {
+  // Refresh screen when power button is short-pressed with FORCE_REFRESH setting (legacy), or via advanced remap.
+  if (SETTINGS.advancedButtonRemap) {
+    if (mappedInputManager.consumeAction(InputAction::ScreenForceRefresh)) {
+      LOG_DBG("MAIN", "Manual screen refresh triggered (advanced remap)");
+      RenderLock lock;
+      renderer.displayBuffer(HalDisplay::HALF_REFRESH);
+    }
+  } else if (SETTINGS.shortPwrBtn == CrossPointSettings::SHORT_PWRBTN::FORCE_REFRESH &&
+             mappedInputManager.wasReleased(MappedInputManager::Button::Power)) {
     LOG_DBG("MAIN", "Manual screen refresh triggered");
     RenderLock lock;
     renderer.displayBuffer(HalDisplay::HALF_REFRESH);

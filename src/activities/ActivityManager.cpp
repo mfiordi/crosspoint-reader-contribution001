@@ -301,3 +301,5 @@ void RenderLock::unlock() {
  *
  */
 bool RenderLock::peek() { return xQueuePeek(activityManager.renderingMutex, NULL, 0) != pdTRUE; };
+
+bool crosspointIsActiveReaderActivity() { return activityManager.isReaderActivity(); }

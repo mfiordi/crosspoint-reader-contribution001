@@ -3,6 +3,7 @@
 #include <GfxRenderer.h>
 #include <Logging.h>
 
+#include "AdvancedButtonMapActivity.h"
 #include "ButtonRemapActivity.h"
 #include "CalibreSettingsActivity.h"
 #include "ClearCacheActivity.h"
@@ -44,6 +45,8 @@ void SettingsActivity::onEnter() {
   }
 
   // Append device-only ACTION items
+  controlsSettings.insert(controlsSettings.begin(),
+                          SettingInfo::Action(StrId::STR_ADVANCED_BUTTON_MAP, SettingAction::AdvancedButtonMap));
   controlsSettings.insert(controlsSettings.begin(),
                           SettingInfo::Action(StrId::STR_REMAP_FRONT_BUTTONS, SettingAction::RemapFrontButtons));
   systemSettings.push_back(SettingInfo::Action(StrId::STR_WIFI_NETWORKS, SettingAction::Network));
@@ -170,6 +173,9 @@ void SettingsActivity::toggleCurrentSetting() {
     switch (setting.action) {
       case SettingAction::RemapFrontButtons:
         startActivityForResult(std::make_unique<ButtonRemapActivity>(renderer, mappedInput), resultHandler);
+        break;
+      case SettingAction::AdvancedButtonMap:
+        startActivityForResult(std::make_unique<AdvancedButtonMapActivity>(renderer, mappedInput), resultHandler);
         break;
       case SettingAction::CustomiseStatusBar:
         startActivityForResult(std::make_unique<StatusBarSettingsActivity>(renderer, mappedInput), resultHandler);

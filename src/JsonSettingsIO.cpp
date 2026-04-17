@@ -5,11 +5,14 @@
 #include <Logging.h>
 #include <ObfuscationUtils.h>
 
+#include <algorithm>
 #include <cstring>
 #include <string>
 
 #include "CrossPointSettings.h"
 #include "CrossPointState.h"
+#include "InputAction.h"
+#include "InputMappingDefaults.h"
 #include "KOReaderCredentialStore.h"
 #include "RecentBooksStore.h"
 #include "SettingsList.h"
@@ -69,6 +72,7 @@ void applyLegacyStatusBarSettings(CrossPointSettings& settings) {
 bool JsonSettingsIO::saveState(const CrossPointState& s, const char* path) {
   JsonDocument doc;
   doc["openEpubPath"] = s.openEpubPath;
+  doc["alternateReaderPath"] = s.alternateReaderPath;
   JsonArray recentArr = doc["recentSleepImages"].to<JsonArray>();
   for (int i = 0; i < CrossPointState::SLEEP_RECENT_COUNT; i++) recentArr.add(s.recentSleepImages[i]);
   doc["recentSleepPos"] = s.recentSleepPos;
@@ -90,6 +94,7 @@ bool JsonSettingsIO::loadState(CrossPointState& s, const char* json) {
   }
 
   s.openEpubPath = doc["openEpubPath"] | std::string("");
+  s.alternateReaderPath = doc["alternateReaderPath"] | std::string("");
   memset(s.recentSleepImages, 0, sizeof(s.recentSleepImages));
   JsonArrayConst recentArr = doc["recentSleepImages"];
   const int actualCount = recentArr.isNull() ? 0
@@ -139,6 +144,23 @@ bool JsonSettingsIO::saveSettings(const CrossPointSettings& s, const char* path)
   doc["frontButtonConfirm"] = s.frontButtonConfirm;
   doc["frontButtonLeft"] = s.frontButtonLeft;
   doc["frontButtonRight"] = s.frontButtonRight;
+
+  doc["advancedButtonRemap"] = s.advancedButtonRemap;
+  doc["inputLongPressDefaultMs"] = s.inputLongPressDefaultMs;
+  {
+    JsonArray a = doc["inputMapShort"].to<JsonArray>();
+    a.clear();
+    for (uint8_t i = 0; i < 7; i++) {
+      a.add(s.inputMapShort[i]);
+    }
+  }
+  {
+    JsonArray a = doc["inputMapLong"].to<JsonArray>();
+    a.clear();
+    for (uint8_t i = 0; i < 7; i++) {
+      a.add(s.inputMapLong[i]);
+    }
+  }
 
   String json;
   serializeJson(doc, json);
@@ -218,6 +240,45 @@ bool JsonSettingsIO::loadSettings(CrossPointSettings& s, const char* json, bool*
   s.frontButtonRight =
       clamp(doc["frontButtonRight"] | (uint8_t)S::FRONT_HW_RIGHT, S::FRONT_BUTTON_HARDWARE_COUNT, S::FRONT_HW_RIGHT);
   CrossPointSettings::validateFrontButtonMapping(s);
+
+  s.advancedButtonRemap = clamp(doc["advancedButtonRemap"] | (uint8_t)0, (uint8_t)2, (uint8_t)0);
+  {
+    const uint16_t defMs = 700;
+    uint16_t ms = doc["inputLongPressDefaultMs"] | defMs;
+    if (ms == 0) {
+      ms = defMs;
+    }
+    if (ms > 5000) {
+      ms = 5000;
+    }
+    s.inputLongPressDefaultMs = ms;
+  }
+
+  auto loadMap = [&](const char* key, uint8_t* out) {
+    for (uint8_t i = 0; i < 7; i++) {
+      out[i] = 0;
+    }
+    JsonArrayConst arr = doc[key];
+    if (arr.isNull()) {
+      return false;
+    }
+    const size_t n = std::min<size_t>(7, arr.size());
+    for (size_t i = 0; i < n; i++) {
+      out[i] = static_cast<uint8_t>(arr[i] | 0);
+    }
+    return n == 7;
+  };
+
+  const bool hasShort = loadMap("inputMapShort", s.inputMapShort);
+  const bool hasLong = loadMap("inputMapLong", s.inputMapLong);
+  CrossPointSettings::validateInputActionMaps(s);
+
+  if (s.advancedButtonRemap != 0 && (!hasShort || !hasLong)) {
+    InputMappingDefaults::applyStockInputMapping(s);
+    if (needsResave) {
+      *needsResave = true;
+    }
+  }
 
   LOG_DBG("CPS", "Settings loaded from file");
 

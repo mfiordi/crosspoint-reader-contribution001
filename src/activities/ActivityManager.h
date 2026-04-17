@@ -110,3 +110,6 @@ class ActivityManager {
 };
 
 extern ActivityManager activityManager;  // singleton, to be defined in main.cpp
+
+// Small hook for input routing without creating a header dependency cycle.
+bool crosspointIsActiveReaderActivity();

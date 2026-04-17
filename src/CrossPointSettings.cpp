@@ -8,6 +8,7 @@
 #include <cstring>
 #include <string>
 
+#include "InputAction.h"
 #include "fontIds.h"
 
 // Initialize the static instance
@@ -73,6 +74,23 @@ void CrossPointSettings::validateFrontButtonMapping(CrossPointSettings& settings
         return;
       }
     }
+  }
+}
+
+void CrossPointSettings::validateInputActionMaps(CrossPointSettings& settings) {
+  for (uint8_t i = 0; i < 7; i++) {
+    if (!isValidInputAction(settings.inputMapShort[i])) {
+      settings.inputMapShort[i] = static_cast<uint8_t>(InputAction::None);
+    }
+    if (!isValidInputAction(settings.inputMapLong[i])) {
+      settings.inputMapLong[i] = static_cast<uint8_t>(InputAction::None);
+    }
+  }
+  if (settings.inputLongPressDefaultMs > 5000) {
+    settings.inputLongPressDefaultMs = 5000;
+  }
+  if (settings.advancedButtonRemap > 1) {
+    settings.advancedButtonRemap = 0;
   }
 }
 

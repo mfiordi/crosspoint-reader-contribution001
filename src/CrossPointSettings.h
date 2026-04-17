@@ -189,6 +189,15 @@ class CrossPointSettings {
   uint8_t hideBatteryPercentage = HIDE_NEVER;
   // Long-press chapter skip on side buttons
   uint8_t longPressChapterSkip = 1;
+
+  // Advanced per-button mapping (short/long release on each hardware key). When enabled, overrides logical
+  // MappedInputManager routing for presses/releases (see MappedInputManager + InputMappingDefaults).
+  uint8_t advancedButtonRemap = 0;
+  // Default long-press threshold (ms) for keys that are not using reader-specific thresholds.
+  uint16_t inputLongPressDefaultMs = 700;
+  // HalGPIO button index order: Back, Confirm, Left, Right, Up, Down, Power (see HalGPIO.h).
+  uint8_t inputMapShort[7] = {};
+  uint8_t inputMapLong[7] = {};
   // UI Theme
   uint8_t uiTheme = LYRA;
   // Sunlight fading compensation
@@ -217,6 +226,7 @@ class CrossPointSettings {
   bool loadFromFile();
 
   static void validateFrontButtonMapping(CrossPointSettings& settings);
+  static void validateInputActionMaps(CrossPointSettings& settings);
 
  private:
   bool loadFromBinaryFile();
